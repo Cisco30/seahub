@@ -717,6 +717,7 @@ define([
 
                 $form.on('submit', function() {
                     var dirent_name = $.trim($input.val());
+                    var suffix = $input.data('suffix');
 
                     if (!dirent_name) {
                         Common.showFormError(form_id, gettext("It is required."));
@@ -726,6 +727,14 @@ define([
                     if (dirent_name.indexOf('/') != -1) {
                         Common.showFormError(form_id, gettext("Name should not include '/'."));
                         return false;
+                    }
+
+                    if ((suffix == '.docx' && dirent_name.endsWith('.doc')) || (suffix == '.xlsx' && dirent_name.endsWith('.xls')) || (suffix == '.pptx' && dirent_name.endsWith('.ppt'))) {
+                        dirent_name += 'x';
+                    }
+
+                    if (!dirent_name.endsWith(suffix)) {
+                        dirent_name += suffix;
                     }
 
                     // if it has an extension, make sure it has a name

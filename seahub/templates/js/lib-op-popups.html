@@ -15,7 +15,7 @@
     <form id="add-new-file-form" action="" method="post" class="hide">{% csrf_token %}
         <h3 id="dialogTitle"><%= title %></h3>
         <label for="file-name">{% trans "Name" %}</label><br/>
-        <input type="text" name="name" value="<%= initial_file_name %>" class="input" maxlength="{{max_file_name}}" id="file-name" /><br />
+        <input type="text" name="name" data-suffix="<%= initial_file_name %>" class="input" maxlength="{{max_file_name}}" id="file-name" /><br />
         <p class="error hide"></p>
         <button type="submit" class="submit">{% trans "Submit" %}</button>
         <button class="simplemodal-close">{% trans "Cancel" %}</button>
