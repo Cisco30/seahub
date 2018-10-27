@@ -104,10 +104,18 @@ define([
             var $loadingTip = $('.loading-tip', $panel);
             var $error = $('.error', $panel);
 
+            var p_l = '';
+            if (app.pageOptions.language_code == 'zh-cn') {
+                p_l = '工号、姓名或者花名';
+            }
+            else {
+                p_l = 'Employee ID, employee name or nick name';
+            }
+          
             if (collection.perm_type == 'user') {
                 $('[name="emails"]', $panel).select2($.extend(
                     Common.contactInputOptionsForSelect2(), {
-                        placeholder: gettext("Search user or enter email and press Enter") // to override 'placeholder' returned by `Common.conta...`
+                        placeholder: p_l,
                     }));
             } else {
                 var groups = [];
