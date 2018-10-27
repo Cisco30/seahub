@@ -4401,3 +4401,8 @@ img.thumbnail {
 .report-month-custom-form {
     margin-left:10px;
 }
+
+.side-nav-footer .item {
+  margin-right:0;
+  margin-left:10px;
+}
