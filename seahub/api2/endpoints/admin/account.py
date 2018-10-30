@@ -17,6 +17,7 @@ from seahub.api2.authentication import TokenAuthentication
 from seahub.api2.serializers import AccountSerializer
 from seahub.api2.throttling import UserRateThrottle
 from seahub.api2.utils import api_error, to_python_boolean
+from seahub.signals import repo_transfered
 from seahub.base.accounts import User
 from seahub.base.templatetags.seahub_tags import email2nickname
 from seahub.profile.models import Profile, DetailedProfile
@@ -91,6 +92,8 @@ class Account(APIView):
             # transfer owned repos to new user
             for r in seafile_api.get_owned_repo_list(from_user):
                 seafile_api.set_repo_owner(r.id, user2.username)
+                repo_transfered.send(sender=None, org_id=-1, operator=request.user.username,
+                        repo_id=r.id, from_user=from_user, to_user=user2.username)
 
             # transfer joined groups to new user
             for g in seaserv.get_personal_groups_by_user(from_user):

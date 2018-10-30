@@ -12,6 +12,9 @@ if not hasattr(settings, 'EVENTS_CONFIG_FILE'):
     def repo_deleted_cb(sender, **kwargs):
         pass
 
+    def repo_transfer_cb(sender, **kwargs):
+        pass
+
     def clean_up_repo_trash_cb(sender, **kwargs):
         pass
 
@@ -37,6 +40,7 @@ else:
         # Move here to avoid model import during Django setup.
         # TODO: Don't register signal/hanlders during Seahub start.
         from utils import SeafEventsSession
+        from seahub.alibaba.models import AlibabaRepoOwnerChain
 
         session = SeafEventsSession()
         if org_id > 0:
@@ -59,6 +63,12 @@ else:
                             dir_path.strip('/'), creator)
             except Exception as e:
                 logger.error(e)
+
+        try:
+            AlibabaRepoOwnerChain.objects.add_repo_create_chain(repo_id,
+                    creator)
+        except Exception as e:
+            logger.error(e)
 
     def repo_deleted_cb(sender, **kwargs):
         """When a repo is deleted, an event would be added to every user in all
@@ -88,6 +98,22 @@ else:
         else:
             seafevents.save_user_events(session, etype, detail, users, None)
         session.close()
+
+    def repo_transfer_cb(sender, **kwargs):
+        """When a repo is transfered, record necessary info to database.
+
+        """
+        from seahub.alibaba.models import AlibabaRepoOwnerChain
+        repo_id = kwargs['repo_id']
+        operator = kwargs['operator']
+        from_user = kwargs['from_user']
+        to_user = kwargs['to_user']
+
+        try:
+            AlibabaRepoOwnerChain.objects.add_repo_transfer_chain(repo_id,
+                    operator, from_user, to_user)
+        except Exception as e:
+            logger.error(e)
 
     def clean_up_repo_trash_cb(sender, **kwargs):
         """When a repo trash is deleted, the operator will be recorded.

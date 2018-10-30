@@ -43,6 +43,7 @@ from seahub.api2.endpoints.group_owned_libraries import get_group_id_by_repo_own
 from seahub.avatar.templatetags.avatar_tags import api_avatar_url, avatar
 from seahub.avatar.templatetags.group_avatar_tags import api_grp_avatar_url, \
         grp_avatar
+from seahub.signals import repo_transfered
 from seahub.base.accounts import User
 from seahub.base.models import UserStarredFiles, DeviceToken, RepoSecretKey
 from seahub.share.models import ExtraSharePermission, ExtraGroupsSharePermission
@@ -1517,6 +1518,9 @@ class RepoOwner(APIView):
                     return api_error(status.HTTP_400_BAD_REQUEST, error_msg)
                 else:
                     seafile_api.set_repo_owner(repo_id, new_owner)
+                    repo_transfered.send(sender=None, org_id=-1, operator=username,
+                            repo_id=repo_id, from_user=username,
+                            to_user=new_owner)
         except SearpcError as e:
             logger.error(e)
             error_msg = 'Internal Server Error'
