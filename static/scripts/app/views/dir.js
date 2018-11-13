@@ -550,6 +550,16 @@ define([
 
             renderToolbar: function() {
                 var dir = this.dir;
+
+                // show 'share' or not
+                var can_share = false;
+                if (!dir.encrypted &&
+                    (app.pageOptions.can_generate_upload_link ||
+                    dir.is_repo_owner || dir.is_admin) &&
+                    (dir.user_perm == 'rw' || dir.user_perm == 'r')) {
+                    can_share = true;
+                }
+
                 var data = {
                     user_perm: dir.user_perm,
                     no_quota: dir.no_quota,

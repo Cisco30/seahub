@@ -55,7 +55,7 @@ define([
 
             this.$("#share-tabs").tabs();
 
-            if (!this.repo_encrypted && app.pageOptions.can_generate_share_link) {
+            if (!this.repo_encrypted && app.pageOptions.can_generate_share_link && !this.is_dir) {
                 this.downloadLinkPanelInit();
             }
             if (this.is_dir) {
@@ -173,6 +173,18 @@ define([
             this.download_link_token = link_data.token; // for 'link delete'
 
             $span.html(link);
+            if (link_data.permissions.can_edit) {
+                this.$('#alibaba-can-edit-share-link-desc-cn').removeClass('hide');
+                this.$('#alibaba-can-edit-share-link-desc-en').removeClass('hide');
+                this.$('#alibaba-preview-only-share-link-desc-cn').addClass('hide');
+                this.$('#alibaba-preview-only-share-link-desc-en').addClass('hide');
+            } else {
+                this.$('#alibaba-can-edit-share-link-desc-cn').addClass('hide');
+                this.$('#alibaba-can-edit-share-link-desc-en').addClass('hide');
+                this.$('#alibaba-preview-only-share-link-desc-cn').removeClass('hide');
+                this.$('#alibaba-preview-only-share-link-desc-en').removeClass('hide');
+            }
+
             if (link_data.permissions.can_download) {
                 $dLink.show().prev('dt').show();
                 $dSpan.html(d_link);
@@ -224,6 +236,7 @@ define([
             var $panel = $('#download-link-share');
             var $loadingTip = this.$('.loading-tip');
             var _this = this;
+            var hasShareLink = false;
 
             // check if downloadLink exists
             $.ajax({
@@ -238,8 +251,11 @@ define([
                     if (data.length == 1) {
                         var link_data = data[0];
                         _this.renderDownloadLink(link_data);
+                        hasShareLink = true;
                     } else {
-                        _this.$('#generate-download-link-form').removeClass('hide');
+                        if (_this.is_dir) {
+                            _this.$('#generate-download-link-form').removeClass('hide');
+                        }
                      }
                 },
                 error: function(xhr, textStatus, errorThrown) {
@@ -247,7 +263,9 @@ define([
                     $('.error', $panel).html(err_msg).show();
                 },
                 complete: function() {
-                    $loadingTip.hide();
+                    if (_this.is_dir) {
+                        $loadingTip.hide();
+                    }
                 }
             });
 
@@ -262,18 +280,32 @@ define([
                     dataType: 'json',
                     success: function(data) {
                         // show 'can preview/edit' perm option for download link or not
-                        if (!data.can_preview) {
-                            _this.$('#share-link-preview-only-radio').addClass('hide');
-                        }
+                        if (!data.can_preview && !data.can_edit) {
+                            if (['zh-CN', 'zh-cn', 'zh-TW', 'zh-tw'].indexOf(app.pageOptions.language_code) >= 0) {
+                                _this.$("#download-link-share").html("该文件格式不支持云端预览和云端编辑");
+                            } else {
+                                _this.$("#download-link-share").html("Neither view link nor edit link is applicable to this file format");
+                            }
+                        } else {
+                            if (data.can_preview) {
+                                _this.$('#file-share-link-preview-only-radio').removeClass('hide');
+                            }
 
-                        var file_ext = '';
-                        if (_this.obj_name.lastIndexOf('.') != -1) {
-                            file_ext = _this.obj_name.substr(_this.obj_name.lastIndexOf('.') + 1)
-                                .toLowerCase();
+                            var file_ext = '';
+                            if (_this.obj_name.lastIndexOf('.') != -1) {
+                                file_ext = _this.obj_name.substr(_this.obj_name.lastIndexOf('.') + 1)
+                                    .toLowerCase();
+                            }
+                            if ((file_ext == 'docx' || file_ext == 'xlsx' || file_ext == 'pptx') && data.can_edit) {
+                                _this.$('#file-share-link-edit-only-radio').removeClass('hide');
+                            }
                         }
-                        if ((file_ext == 'docx' || file_ext == 'xlsx' || file_ext == 'pptx') && data.can_edit) {
-                            _this.$('#share-link-edit-download-radio').removeClass('hide');
+                        if (!hasShareLink) {
+                            _this.$('#generate-download-link-form').removeClass('hide');
                         }
+                    },
+                    complete: function() {
+                        $loadingTip.hide();
                     }
                 });
             }
@@ -398,6 +430,11 @@ define([
                             linkPermDetails = {
                                 "can_edit": true,
                                 "can_download": true
+                            };
+                        case 'edit_only':
+                            linkPermDetails = {
+                                "can_edit": true,
+                                "can_download": false
                             };
                             break;
                     }
@@ -682,6 +719,8 @@ define([
                 $.extend(item_data, {
                     "user_email": item.user_info.name,
                     "user_name": item.user_info.nickname,
+                    "post_name": item.user_info.post_name,
+                    "work_no": item.user_info.work_no,
                     "permission": item.permission,
                     'is_admin': item.is_admin
                 });
@@ -948,7 +987,7 @@ define([
                     if (data.failed.length > 0) {
                         var err_msg = '';
                         $(data.failed).each(function(index, item) {
-                            err_msg += Common.HTMLescape(item.email) + ': ' + item.error_msg + '<br />';
+                            err_msg += item.error_msg + '<br />';
                         });
                         $error.html(err_msg).removeClass('hide');
                     }

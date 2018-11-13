@@ -1138,7 +1138,7 @@
     <h3 class="hd" id="dialogTitle"><%= title %></h3>
     <div id="share-tabs" class="nav-con-tabs">
         <ul class="nav-con-tabs-nav">
-            <% if (!repo_encrypted && can_generate_share_link) { %>
+            <% if (!repo_encrypted && can_generate_share_link && !is_dir) { %>
             <li class="tab"><a href="#download-link-share" class="a">{% trans "Share Link" %}</a></li>
             <% } %>
             <% if (is_dir) { %>
@@ -1155,13 +1155,17 @@
 
         <div class="nav-con-tabs-content">
             <span class="loading-icon loading-tip"></span>
-            <% if (!repo_encrypted && can_generate_share_link) { %>
+            <% if (!repo_encrypted && can_generate_share_link && !is_dir) { %>
             <div id="download-link-share" class="tabs-panel">
                 <form id="generate-download-link-form" action="" class="hide">
 
                     <label class="checkbox-label">
                         <input type="checkbox" name="use_passwd" class="vam" />
-                        <span class="checkbox-option vam">{% trans "Add password protection"%}</span>
+                        {% if request.LANGUAGE_CODE == 'zh-cn' or request.LANGUAGE_CODE == 'zh-tw' %}
+                        <span class="checkbox-option vam">设置密码保护</span>
+                        {% else %}
+                        <span class="checkbox-option vam">Add password protection</span>
+                        {% endif %}
                     </label>
                     <div class="hide link-option-content">
                         <label for="passwd">{% trans "Password" %}</label><span class="tip">{% blocktrans %}(at least {{share_link_password_min_length}} characters){% endblocktrans %}</span>
@@ -1177,7 +1181,11 @@
                     {% if share_link_expire_days_min > 0 or share_link_expire_days_max > 0 %}
                     <label class="checkbox-label">
                         <input type="checkbox" checked="checked" disabled="disabled" name="set_expiration" class="vam" />
-                        <span class="checkbox-option vam">{% trans "Add auto expiration"%}</span>
+                        {% if request.LANGUAGE_CODE == 'zh-cn' or request.LANGUAGE_CODE == 'zh-tw' %}
+                        <span class="checkbox-option vam">设置过期时间</span>
+                        {% else %}
+                        <span class="checkbox-option vam">Modify auto expiration</span>
+                        {% endif %}
                         <div class="link-option-content inline-block vam">
                             <input type="text" name="expire_days" class="input short-input" id="expire-days" />
                             <span>{% trans "days" %}</span>
@@ -1207,20 +1215,20 @@
                     <% if (app.pageOptions.is_pro) { %>
                     <label class="checkbox-label">
                         <input type="checkbox" checked="checked" disabled="disabled" name="set_permission" class="vam" />
-                        <span class="checkbox-option vam">{% trans "Set permission" %}</span>
+                        {% if request.LANGUAGE_CODE == 'zh-cn' or request.LANGUAGE_CODE == 'zh-tw' %}
+                        <span class="checkbox-option vam">读写权限控制</span>
+                        {% else %}
+                        <span class="checkbox-option vam">Permission Control</span>
+                        {% endif %}
                     </label>
                     <div class="link-option-content">
-                        <label class="radio-item">
-                            <input type="radio" name="permission" value="preview_download" checked="checked" class="vam" />
-                            <span class="vam">{% trans "Preview and download" %}</span>
+                        <label id="file-share-link-preview-only-radio" class="radio-item hide">
+                            <input type="radio" name="permission" value="preview_only" checked="checked" class="vam" />
+                            <span class="vam">{% trans "View-on-Cloud" %}</span>
                         </label><br />
-                        <label id="share-link-preview-only-radio" class="radio-item">
-                            <input type="radio" name="permission" value="preview_only" class="vam" />
-                            <span class="vam">{% trans "Preview only" %}</span>
-                        </label><br />
-                        <label id="share-link-edit-download-radio" class="radio-item hide">
-                            <input type="radio" name="permission" value="edit_download" class="vam" />
-                            <span class="vam">{% trans "Edit on cloud and download" %}</span>
+                        <label id="file-share-link-edit-only-radio" class="radio-item hide">
+                            <input type="radio" name="permission" value="edit_only" class="vam" />
+                            <span class="vam">{% trans "Edit-on-Cloud" %}</span>
                         </label>
                     </div>
                     <% } %>
@@ -1230,7 +1238,18 @@
                 </form>
                 <div id="download-link-operations" class="hide">
                     <dl>
-                        <dt>{% trans "Link: " %}</dt>
+                        {% if request.LANGUAGE_CODE == 'zh-cn' or request.LANGUAGE_CODE == 'zh-tw' %}
+                        <dt id="alibaba-preview-only-share-link-desc-cn">查看链接： 阿里巴巴经济体内，获取该链接的任何人<strong>可以查看</strong>该文件</dt>
+                        {% else %}
+                        <dt id="alibaba-preview-only-share-link-desc-en">View Link: Within Alibaba Group, anyone who gets the link can <strong>VIEW</strong> the file</dt>
+                        {% endif %}
+
+                        {% if request.LANGUAGE_CODE == 'zh-cn' or request.LANGUAGE_CODE == 'zh-tw' %}
+                        <dt id="alibaba-can-edit-share-link-desc-cn">编辑链接： 阿里巴巴经济体内，获取该链接的任何人<strong>可以编辑</strong>该文件</dt>
+                        {% else %}
+                        <dt id="alibaba-can-edit-share-link-desc-en">Edit Link: Within Alibaba Group, anyone who gets the link can <strong>EDIT</strong> the file</dt>
+                        {% endif %}
+
                         <dd id="download-link">
                             <span class="link-placeholder"></span>
                             <input type="text" readonly="readonly" value="" class="shared-link hide" />
