@@ -39,6 +39,7 @@ class FileHistory extends React.Component {
       isLoading: true,
       isError: false,
       hasMore: true,
+      itemsSelected: [],
     };
   }
 
@@ -77,9 +78,22 @@ class FileHistory extends React.Component {
   onPaginatedGet = (e) =>
     this.fetchData(REPO_ID, FILE_PATH, this.state.page + 1, PER_PAGE)
 
+  onItemSelected = (e, commit_id) => {
+    e.stopPropagation();
+    let prevItems = this.state.itemsSelected;
+    this.setState({ itemsSelected: [...prevItems, commit_id] });
+    return false;
+  }
+
+  handleClick = (e) => {
+    if (e.target.tagName !== 'SELECT') {
+      this.setState({ itemsSelected: []});
+    }
+  }
+
   render() {
     return (
-      <div>
+      <div onClick={this.handleClick}>
         <Header />
         <BackNav />
         <Tip />
@@ -96,6 +110,8 @@ class FileHistory extends React.Component {
           isError={this.state.isError}
           hasMore={this.state.hasMore}
           page={this.state.page}
+          itemsSelected={this.state.itemsSelected}
+          selectItem={this.onItemSelected}
         />
 
       </div>
@@ -118,11 +134,29 @@ const Tip = () => (
   <p className="tip">Tip: a new version will be generated after each modification, and you can restore the file to a previous version.</p>
 );
 
-const TableRow = ({ item, idx, handleMouseEnter=f=>f, handleMouseLeave=f=>f, isHovered=false }) => (
+const TableRow = ({ item, idx, handleMouseEnter=f=>f, handleMouseLeave=f=>f, handleClick=f=>f, isHovered=false, selected=false }) => (
   <tr onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
     className={isHovered ? 'hl' : ''}>
     <td className="time"><span title={item.ctime}><Moment locale={lang} fromNow>{item.ctime}</Moment></span> {idx === 0 && '(current version)'}</td>
-    <td><img src={item.creator_avatar_url} width="16" height="16" alt="" className="avatar" /> <a href={getUrl({name: 'user_profile', username: item.creator_email})} className="vam">{item.creator_name}</a></td>
+
+    <td>
+      { selected ?
+        <select className="perm-select select-white" style={{display: 'inline-block'}}>
+          <option value="rw" defaultValue="selected">{item.creator_name}</option>
+          <option value="rw" >{item.creator_name}</option>
+          <option value="rw" >{item.creator_name}</option>
+        </select>
+        :
+        <div><img src={item.creator_avatar_url} width="16" height="16" alt="" className="avatar" /> <a href={getUrl({name: 'user_profile', username: item.creator_email})} className="vam">{item.creator_name}</a>
+          { isHovered ?
+            <a href="javascript:void(0)" title="Edit" className="perm-edit-icon sf2-icon-edit op-icon" onClick={(e) => handleClick(e, item.commit_id)}></a>
+            :
+            <a/>
+          }
+        </div>
+      }
+    </td>
+
     <td>{filesize(item.size, {base: 10})}</td>
 
     { isHovered ?
@@ -148,7 +182,7 @@ TableRow.propTypes = {
   })
 };
 
-const Table = ({ data }) => (
+const Table = ({ data, itemsSelected, selectItem=f=>f }) => (
   <table className="commit-list">
     <thead>
       <tr>
@@ -161,13 +195,14 @@ const Table = ({ data }) => (
 
     <tbody>
       {data.map(
-        (item, idx) => <TableRowWithHover key={item.commit_id} item={item} idx={idx} />
+        (item, idx) => <TableRowWithHover key={item.commit_id} item={item} idx={idx} selected={itemsSelected.includes(item.commit_id)} handleClick={selectItem} />
       )}
     </tbody>
   </table>
 );
 Table.propTypes = {
-  data: PropTypes.array.isRequired
+  data: PropTypes.array.isRequired,
+  itemsSelected: PropTypes.array.isRequired,
 };
 
 const Breadcrumb = ({ repoID, repoName, filePath }) => {
