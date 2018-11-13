@@ -89,6 +89,8 @@ except ImportError:
 from seahub.utils.two_factor_auth import has_two_factor_auth
 from termsandconditions.models import TermsAndConditions
 
+from seahub.alibaba.utils import get_ali_user_profile_dict
+
 logger = logging.getLogger(__name__)
 
 @login_required
@@ -225,13 +227,11 @@ def can_view_sys_admin_repo(repo):
 def populate_user_info(user):
     """Populate contact email and name to user.
     """
-    user_profile = Profile.objects.get_profile_by_user(user.email)
-    if user_profile:
-        user.contact_email = user_profile.contact_email
-        user.name = user_profile.nickname
-    else:
-        user.contact_email = ''
-        user.name = ''
+    # Start Alibaba Group related
+    # TODO: move CE
+    user.name = email2nickname(user.email)
+    user.contact_email = ''
+    # End Alibaba Group related
 
 def _populate_user_quota_usage(user):
     """Populate space/share quota to user.
@@ -703,6 +703,7 @@ def user_info(request, email):
     # get user profile
     profile = Profile.objects.get_profile_by_user(email)
     d_profile = DetailedProfile.objects.get_detailed_profile_by_user(email)
+    ali_p = get_ali_user_profile_dict(request, email)
 
     user_shared_links = []
     # download links
@@ -815,6 +816,9 @@ def user_info(request, email):
             'email': email,
             'profile': profile,
             'd_profile': d_profile,
+            "work_no": ali_p['work_no'],
+            "post_name": ali_p['post_name'],
+            "department": ali_p['dept_name'],
             'org_name': org_name,
             'user_shared_links': user_shared_links,
             'enable_sys_admin_view_repo': ENABLE_SYS_ADMIN_VIEW_REPO,

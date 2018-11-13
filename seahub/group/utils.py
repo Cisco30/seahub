@@ -14,6 +14,8 @@ from seahub.avatar.settings import AVATAR_DEFAULT_SIZE
 from seahub.avatar.templatetags.avatar_tags import api_avatar_url, \
     get_default_avatar_url
 
+from seahub.alibaba.utils import get_ali_user_profile_dict
+
 logger = logging.getLogger(__name__)
 
 class BadGroupNameError(Exception):
@@ -109,6 +111,8 @@ def get_group_member_info(request, group_id, email, avatar_size=AVATAR_DEFAULT_S
     elif is_admin:
         role = 'Admin'
 
+    ali_p = get_ali_user_profile_dict(request, email)
+
     member_info = {
         'group_id': group_id,
         "name": email2nickname(email),
@@ -118,6 +122,9 @@ def get_group_member_info(request, group_id, email, avatar_size=AVATAR_DEFAULT_S
         "avatar_url": request.build_absolute_uri(avatar_url),
         "is_admin": is_admin,
         "role": role,
+        "work_no": ali_p['work_no'],
+        "post_name": ali_p['post_name'],
+        "department": ali_p['dept_name'],
     }
 
     return member_info

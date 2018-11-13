@@ -35,6 +35,7 @@ from seahub.share.signals import share_repo_to_user_successful, share_repo_to_gr
 from seahub.constants import PERMISSION_READ, PERMISSION_READ_WRITE, \
         PERMISSION_ADMIN
 
+from seahub.alibaba.utils import get_ali_user_profile_dict
 
 logger = logging.getLogger(__name__)
 json_content_type = 'application/json; charset=utf-8'
@@ -71,12 +72,17 @@ class DirSharedItemsEndpoint(APIView):
         # change is_admin to True if user is repo admin.
         admin_users = ExtraSharePermission.objects.get_admin_users_by_repo(repo_id)
         ret = []
+
         for item in share_items:
+            ali_p = get_ali_user_profile_dict(request, item.user)
             ret.append({
                 "share_type": "user",
                 "user_info": {
                     "name": item.user,
                     "nickname": email2nickname(item.user),
+                    "work_no": ali_p['work_no'],
+                    "post_name": ali_p['post_name'],
+                    "department": ali_p['dept_name'],
                 },
                 "permission": item.perm,
                 "is_admin": item.user in admin_users
@@ -373,11 +379,15 @@ class DirSharedItemsEndpoint(APIView):
 
                         share_dir_to_user(repo, path, repo_owner, username, to_user, permission, None)
 
+                    ali_p = get_ali_user_profile_dict(request, to_user)
                     result['success'].append({
                         "share_type": "user",
                         "user_info": {
                             "name": to_user,
                             "nickname": email2nickname(to_user),
+                            "work_no": ali_p['work_no'],
+                            "post_name": ali_p['post_name'],
+                            "department": ali_p['dept_name'],
                         },
                         "permission": PERMISSION_READ_WRITE if permission == PERMISSION_ADMIN else permission,
                         "is_admin": permission == PERMISSION_ADMIN
