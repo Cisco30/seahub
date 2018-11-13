@@ -483,7 +483,6 @@
             </ul>
             <div class="menu-inner-divider"></div>
             <ul id="new-file-menu">
-                <li><a id="add-new-md-file" class="op" href="#">{% trans "New Markdown File" %}</a></li>
                 <li><a id="add-new-excel-file" class="op" href="#">{% trans "New Excel File" %}</a></li>
                 <li><a id="add-new-ppt-file" class="op" href="#">{% trans "New PowerPoint File" %}</a></li>
                 <li><a id="add-new-word-file" class="op" href="#">{% trans "New Word File" %}</a></li>
@@ -581,7 +580,6 @@
     <td class="dirent-icon"><img src="<%= icon_url %>" width="24" alt="" /></td>
     <td>
         <span class="dirent-name"><a href="<%= url %>" class="dir-link normal"><%- dirent.obj_name %></a></span>
-        <span class="dirent-smart-link sf2-icon-link" title="{% trans 'Internal link' %}"></span>
     </td>
     <td class="dirent-op">
         <div class="op-container">
@@ -611,10 +609,6 @@
                         <li><a class="op set-folder-permission" href="#">{% trans "Permission" %}</a></li>
                         <% } %>
                         <li><a class="op view-details" href="#">{% trans "Details" %}</a></li>
-                    </ul>
-                    <div class="menu-inner-divider"></div>
-                    <ul>
-                        <li><a class="op open-via-client" href="seafile://openfile?repo_id=<%- repo_id %>&path=<% print(encodeURIComponent(dirent_path + '/')); %>">{% trans "Open via Client" %}</a></li>
                     </ul>
                 </div>
             </div>
@@ -651,7 +645,6 @@
     <td>
         <span class="dirent-name">
         <a href="<%= url %>" class="dir-link normal"><%- dirent.obj_name %></a>
-        <span class="dirent-smart-link sf2-icon-link" title="{% trans 'Internal link' %}"></span>
         <br />
         <% if (dirent.last_modified) { %>
         <span class="dirent-meta-info"><%= dirent.last_update %></span>
@@ -665,7 +658,6 @@
                 <div class="mobile-menu-mask"></div>
                 <div class="mobile-menu-content">
                     <ul>
-                        <li><a class="op download download-dir" href="#">{% trans "Download" %}</a></li>
                         <% if (!repo_encrypted && (can_generate_share_link || can_generate_upload_link || is_repo_owner || is_admin)) { %>
                         <li><a href="#" class="op share">{% trans "Share" %}</a></li>
                         <% } %>
@@ -724,7 +716,7 @@
         <img src="<%= icon_url %>" width="24" alt="" />
         <% } %>
 
-        <% if (is_pro && dirent.is_locked) { %>
+        <% if (is_pro && dirent.is_locked && (dirent.lock_owner != 'OnlineOffice') ) { %>
         <img class="file-locked-icon" width="16" src="{{ MEDIA_URL }}img/file-locked-32.png" alt="{% trans "locked" %}" />
         <% } %>
         </div>
@@ -737,7 +729,6 @@
             <a class="normal" href="<%= url %>" target="_blank"><%- dirent.obj_name %></a>
             <% } %>
         </span>
-        <span class="dirent-smart-link sf2-icon-link" title="{% trans 'Internal link' %}"></span>
     </td>
     <td class="dirent-op">
         <div class="op-container">
@@ -782,10 +773,6 @@
                         <li><a class="op" href="{{ SITE_ROOT }}repo/file-access/<%= repo_id %>/?p=<% print(encodeURIComponent(dirent_path)); %>" target="_blank">{% trans "Access Log" %}</a></li>
                         <% } %>
                         <li><a class="op view-details" href="#">{% trans "Details" %}</a></li>
-                    </ul>
-                    <div class="menu-inner-divider"></div>
-                    <ul>
-                        <li><a class="op open-via-client" href="seafile://openfile?repo_id=<%- repo_id %>&path=<% print(encodeURIComponent(dirent_path)); %>">{% trans "Open via Client" %}</a></li>
                     </ul>
                 </div>
             </div>
@@ -843,7 +830,7 @@
         <img src="<%= icon_url %>" width="24" alt="" />
         <% } %>
 
-        <% if (is_pro && dirent.is_locked) { %>
+        <% if (is_pro && dirent.is_locked && (dirent.lock_owner != 'OnlineOffice') ) { %>
         <img class="file-locked-icon" width="16" src="{{ MEDIA_URL }}img/file-locked-32.png" alt="{% trans "locked" %}" />
         <% } %>
         </div>
@@ -852,10 +839,8 @@
         <span class="dirent-name">
             <% if (dirent.is_img) { %>
             <a class="normal img-name-link" href="<%= url %>" target="_blank"><%- dirent.obj_name %></a>
-            <span class="dirent-smart-link sf2-icon-link" title= "{% trans 'Internal link' %}"></span>
             <% } else { %>
             <a class="normal" href="<%= url %>" target="_blank"><%- dirent.obj_name %></a>
-            <span class="dirent-smart-link sf2-icon-link" title= "{% trans 'Internal link' %}"></span>
             <br />
             <% } %>
             <span class="dirent-meta-info"><%= dirent.file_size %></span>
@@ -875,7 +860,6 @@
                 <div class="mobile-menu-mask"></div>
                 <div class="mobile-menu-content">
                 <ul>
-                <li><a class="op download download-close-menu" href="<%= download_url %>">{% trans "Download" %}</a></li>
                 <% if (!repo_encrypted && can_generate_share_link) { %>
                 <li><a class="op share" href="#">{% trans "Share" %}</a></li>
                 <% } %>
@@ -938,7 +922,7 @@
             <img src="<%= icon_url %>" width="96" alt="" class="vam" />
         <% } %>
 
-        <% if (is_pro && dirent.is_locked) { %>
+        <% if (is_pro && dirent.is_locked && (dirent.lock_owner != 'OnlineOffice') ) { %>
         <img class="grid-file-locked-icon" width="16" src="{{ MEDIA_URL }}img/file-locked-32.png" alt="{% trans "locked" %}" />
         <% } %>
     </a>
@@ -1008,13 +992,6 @@
                 <li><a class="op view-details" href="#">{% trans "Details" %}</a></li>
             <% } %>
         </ul>
-
-        <% if (dirent.perm == 'rw') { %>
-        <div class="menu-inner-divider"></div>
-        <ul>
-            <li><a class="op open-via-client" href="seafile://openfile?repo_id=<%= repo_id %>&path=<% print(encodeURIComponent(dirent_path)); %>">{% trans "Open via Client" %}</a></li>
-        </ul>
-        <% } %>
     </div>
 </script>
 
@@ -1050,13 +1027,6 @@
             <li><a class="op view-details" href="#">{% trans "Details" %}</a></li>
         <% } %>
         </ul>
-
-        <% if (dirent.perm == 'rw') { %>
-        <div class="menu-inner-divider"></div>
-        <ul>
-            <li><a class="op open-via-client" href="seafile://openfile?repo_id=<%= repo_id %>&path=<% print(encodeURIComponent(dirent_path)); %>">{% trans "Open via Client" %}</a></li>
-        </ul>
-        <% } %>
     </div>
 </script>
 
