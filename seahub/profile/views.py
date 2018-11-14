@@ -75,6 +75,10 @@ def edit_profile(request):
     owned_repos = get_owned_repo_list(request)
     owned_repos = filter(lambda r: not r.is_virtual, owned_repos)
 
+    from social_django.models import UserSocialAuth
+    social_connected = UserSocialAuth.objects.filter(
+        username=request.user.username, provider='weixin-work').count() > 0
+
     resp_dict = {
             'form': form,
             'server_crypto': server_crypto,
@@ -86,6 +90,8 @@ def edit_profile(request):
             'is_ldap_user': is_ldap_user(request.user),
             'two_factor_auth_enabled': has_two_factor_auth(),
             'ENABLE_CHANGE_PASSWORD': settings.ENABLE_CHANGE_PASSWORD,
+            'social_connected': social_connected,
+            'social_next_page': reverse('edit_profile'),
     }
 
     if has_two_factor_auth():
