@@ -13,7 +13,11 @@ const commentPropTypes = {
   getCommentsNumber: PropTypes.func.isRequired,
   inResizing: PropTypes.bool.isRequired,
   toggleCommentList: PropTypes.func.isRequired,
-  commentsNumber: PropTypes.number.isRequired
+  commentsNumber: PropTypes.number.isRequired,
+  selectedText: PropTypes.string,
+  commentPosition: PropTypes.object,
+  commentIndex: PropTypes.array,
+  scrollToQuote: PropTypes.func.isRequired
 };
 
 class ReviewComments extends React.Component {
@@ -61,12 +65,24 @@ class ReviewComments extends React.Component {
   submitComment = () => {
     let comment = this.refs.commentTextarea.value;
     if (comment.trim().length > 0) {
-      seafileAPI.addReviewComment(reviewID, comment.trim()).then((res) => {
-        this.listComments(true);
-        this.props.getCommentsNumber();
-      });
-      this.refs.commentTextarea.value = '';
+      if (this.props.selectedText.length > 0) {
+        let detail = {};
+        detail.position = this.props.commentPosition;
+        detail.index = this.props.commentIndex;
+        let detailJSON = JSON.stringify(detail);
+        seafileAPI.addReviewComment(reviewID, comment.trim(), detailJSON).then((response) => {
+          this.listComments(true);
+          this.props.getCommentsNumber();
+        });
+      }
+      else {
+        seafileAPI.addReviewComment(reviewID, comment.trim()).then((response) => {
+          this.listComments(true);
+          this.props.getCommentsNumber();
+        });
+      }
     }
+    this.refs.commentTextarea.value = '';
   }
 
   resolveComment = (event) => {
@@ -131,9 +147,30 @@ class ReviewComments extends React.Component {
     });
   };
 
+  setQuoteText = (text) => {
+    if (text.length > 0) {
+      this.refs.commentTextarea.value = '> ' + text;
+    }
+  }
+  
+  scrollToQuote = (detail) => {
+    this.props.scrollToQuote(detail);
+    this.refs.commentTextarea.value = '';
+  }
+
   componentWillMount() {
     this.getUserAvatar();
     this.listComments();
+  }
+
+  componentDidMount() {
+    this.setQuoteText(this.props.selectedText);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.selectedText !== nextProps.selectedText) {
+      this.setQuoteText(nextProps.selectedText);
+    }
   }
 
   render() {
@@ -181,6 +218,8 @@ class ReviewComments extends React.Component {
                       commentsList={this.state.commentsList}
                       accountInfo={this.accountInfo}
                       showResolvedComment={this.state.showResolvedComment}
+                      detail={item.detail}
+                      scrollToQuote={this.scrollToQuote}
                     />
                   );
                 })
@@ -221,7 +260,9 @@ const commentItemPropTypes = {
   accountInfo: PropTypes.object.isRequired,
   headUrl: PropTypes.string.isRequired,
   resolved: PropTypes.bool.isRequired,
-  showResolvedComment: PropTypes.bool.isRequired
+  showResolvedComment: PropTypes.bool.isRequired,
+  detail: PropTypes.string.isRequired,
+  scrollToQuote: PropTypes.func.isRequired
 };
 
 class CommentItem extends React.Component {
@@ -249,6 +290,10 @@ class CommentItem extends React.Component {
         });
       }
     );
+  }
+
+  scrollToQuote = () => {
+    this.props.scrollToQuote(this.props.detail);
   }
 
   componentWillMount() {
@@ -288,7 +333,13 @@ class CommentItem extends React.Component {
             </Dropdown>
           }
         </div>
-        <div className="seafile-comment-content" dangerouslySetInnerHTML={{ __html: this.state.html }}></div>
+        { this.props.detail ? 
+          <div className="seafile-comment-content" onClick={this.scrollToQuote}
+            dangerouslySetInnerHTML={{ __html: this.state.html }}></div>
+          :
+          <div className="seafile-comment-content"
+            dangerouslySetInnerHTML={{ __html: this.state.html }}></div>
+        }
       </li>
     );
   }

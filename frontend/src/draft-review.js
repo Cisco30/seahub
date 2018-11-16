@@ -12,6 +12,7 @@ import Toast from './components/toast';
 import ReviewComments from './components/review-list-view/review-comments';
 import { Tooltip } from 'reactstrap';
 import AddReviewerDialog from './components/dialog/add-reviewer-dialog.js';
+import { findRange, findNode } from '@seafile/slate-react';
 
 import 'seafile-ui';
 import './assets/css/fa-solid.css';
@@ -40,6 +41,9 @@ class DraftReview extends React.Component {
       showDiffTip: false,
       showReviewerDialog: false,
       reviewers: [],
+      selectedText: '',
+      commentPosition: null,
+      commentIndex: null,
     };
   }
 
@@ -74,6 +78,11 @@ class DraftReview extends React.Component {
         }); 
       }));
     }
+    document.addEventListener('selectionchange', this.setBtnPosition);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('selectionchange', this.setBtnPosition);
   }
 
   onCloseReview = () => {
@@ -171,6 +180,141 @@ class DraftReview extends React.Component {
     });
   }
 
+  setBtnPosition = (e) => {
+    const nativeSelection = window.getSelection();
+    if (!nativeSelection.rangeCount) {
+      return;
+    }
+    if (nativeSelection.isCollapsed === false) {
+      const nativeRange = nativeSelection.getRangeAt(0);
+      let range = findRange(nativeRange, this.refs.diffViewer.value);
+      if (!range) {
+        return;
+      }
+      let rect = nativeRange.getBoundingClientRect();
+      // fix Safari bug
+      if (navigator.userAgent.indexOf('Chrome') < 0 && navigator.userAgent.indexOf('Safari') > 0) {
+        if (nativeRange.collapsed && rect.top == 0 && rect.height == 0) {
+          if (nativeRange.startOffset == 0) {
+            nativeRange.setEnd(nativeRange.endContainer, 1);
+          } else {
+            nativeRange.setStart(nativeRange.startContainer, nativeRange.startOffset - 1);
+          }
+          rect = nativeRange.getBoundingClientRect();
+          if (rect.top == 0 && rect.height == 0) {
+            if (nativeRange.getClientRects().length) {
+              rect = nativeRange.getClientRects()[0];
+            }
+          }
+        }
+      }
+      let style = this.refs.commentbtn.style;
+      style.top = `${rect.top - 113 + this.refs.viewContent.scrollTop}px`;
+      style.right = `${this.refs.viewContent.clientWidth - rect.x - 70}px`;
+      return range;
+    }
+    else {
+      let style = this.refs.commentbtn.style;
+      style.top = '0px';
+      style.right = '5000px';
+    }
+  }
+
+  addComment = (e) => {
+    e.stopPropagation();
+    let text = window.getSelection().toString().trim();
+    let range = this.setBtnPosition();
+    if (!range) {
+      return;
+    }
+    const { document } = this.refs.diffViewer.value;
+    const { anchor, focus } = range;
+    const anchorText = document.getNode(anchor.key);
+    const focusText = document.getNode(focus.key);
+    const anchorInline = document.getClosestInline(anchor.key);
+    const focusInline = document.getClosestInline(focus.key);
+    const focusBlock = document.getClosestBlock(focus.key);
+    const anchorBlock = document.getClosestBlock(anchor.key);
+    if (anchorBlock && anchor.offset == 0 && focusBlock && focus.offset != 0) {
+      range = range.setFocus(focus.setOffset(0));
+    }
+    // COMPAT: If the selection is at the end of a non-void inline node, and
+    // there is a node after it, put it in the node after instead. This
+    // standardizes the behavior, since it's indistinguishable to the user.
+    if (anchorInline && anchor.offset == anchorText.text.length) {
+      const block = document.getClosestBlock(anchor.key);
+      const nextText = block.getNextText(anchor.key);
+      if (nextText) {
+        range = range.moveAnchorTo(nextText.key, 0);
+      }
+    }
+    if (focusInline && focus.offset == focusText.text.length) {
+      const block = document.getClosestBlock(focus.key);
+      const nextText = block.getNextText(focus.key);
+      if (nextText) {
+        range = range.moveFocusTo(nextText.key, 0); 
+      }
+    }
+    let index = anchorBlock.data._root.entries;
+    let selection = document.createSelection(range).setIsFocused(true);
+    this.setState({
+      commentIndex: index,
+      commentPosition: selection.anchor.path,
+      selectedText: text,
+      isShowComments: true,
+    });
+  }
+
+  findScrollContainer = (el, window) => {
+    let parent = el.parentNode;
+    const OVERFLOWS = ['auto', 'overlay', 'scroll'];
+    let scroller;
+    while (!scroller) {
+      if (!parent.parentNode) break;
+      const style = window.getComputedStyle(parent);
+      const { overflowY } = style;
+      if (OVERFLOWS.includes(overflowY)) {
+        scroller = parent;
+        break;
+      }
+      parent = parent.parentNode;
+    }
+    if (!scroller) {
+      return window.document.body;
+    }
+    return scroller;
+  }
+
+  scrollToQuote = (detailJSON) => {
+    try {
+      const win = window;
+      let detail = JSON.parse(detailJSON);
+      let path = detail.position;
+      let index = detail.index;
+      if (path.length > 2) {
+        // deal with code block or chart
+        path[0] = path[0] > 1 ? path[0] - 1 : path[0] + 1;
+        path = path.slice(0, 1);
+      }
+      let node = this.refs.diffViewer.value.document.getNode(path);
+      if (!node) {
+        path = path.slice(0, 1);
+        node = this.state.value.document.getNode(path);
+      }
+      const element = win.document.querySelector(`[data-key="${node.key}"]`);
+      const scroller = this.findScrollContainer(element, win);
+      const isWindow = scroller == win.document.body || scroller == win.document.documentElement;
+      if (isWindow) {
+        win.scrollTo(0, element.offsetTop);
+      } else {
+        scroller.scrollTop = element.offsetTop;
+      }
+    } catch (e) {
+      // deal with error path or deleted node
+      console.log('The quote was not found.');
+    }
+  }
+
   componentWillMount() {
     this.getCommentsNumber();
     this.listReviewers();
@@ -239,18 +383,28 @@ class DraftReview extends React.Component {
           <div className="cur-view-container content-container"
             onMouseMove={onResizeMove} onMouseUp={this.onResizeMouseUp} ref="comment">
             <div style={{width:(100-this.state.commentWidth)+'%'}}
-              className={!this.state.isShowComments ? 'cur-view-content' : 'cur-view-content cur-view-content-commenton'} >
+              className={!this.state.isShowComments ? 'cur-view-content' : 'cur-view-content cur-view-content-commenton'} ref="viewContent">
               {this.state.isLoading ?
                 <div className="markdown-viewer-render-content article">
                   <Loading /> 
                 </div> 
                 :
-                <div className="markdown-viewer-render-content article">
+                <div className="markdown-viewer-render-content article" ref="mainPanel">
                   {this.state.isShowDiff ? 
-                    <DiffViewer newMarkdownContent={this.state.draftContent} oldMarkdownContent={this.state.draftOriginContent} />
+                    <DiffViewer
+                      newMarkdownContent={this.state.draftContent}
+                      oldMarkdownContent={this.state.draftOriginContent}
+                      ref="diffViewer"
+                    />
                     : 
-                    <DiffViewer newMarkdownContent={this.state.draftContent} oldMarkdownContent={this.state.draftContent} />
+                    <DiffViewer
+                      newMarkdownContent={this.state.draftContent}
+                      oldMarkdownContent={this.state.draftContent}
+                      ref="diffViewer"
+                    />
                   }
+                  <i className="fa fa-comments seafile-viewer-comment-btn"
+                    ref="commentbtn" onMouseDown={this.addComment}></i>
                 </div>
               }
             </div>
@@ -262,6 +416,10 @@ class DraftReview extends React.Component {
                   commentsNumber={this.state.commentsNumber}
                   getCommentsNumber={this.getCommentsNumber}
                   inResizing={this.state.inResizing}
+                  selectedText={this.state.selectedText}
+                  commentPosition={this.state.commentPosition}
+                  commentIndex={this.state.commentIndex}
+                  scrollToQuote={this.scrollToQuote}
                 />
               </div>
             }
